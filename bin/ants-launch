@@ -74,7 +74,12 @@ if [[ ! -z ${ANTS_MODULE:-} ]]; then
         # Report Mule loaded and print version info - this is useful for
         # understanding which build of mule has been sourced.
         date -u +"[INFO] %Y-%m-%dT%H:%M:%SZ - Mule version loaded was:"
-        mule-version
+        if which mule-version ; then
+            mule-version
+        else
+            date -u +"[WARNING] %Y-%m-%dT%H:%M:%SZ - No mule version loaded"
+            date -u +"[WARNING] %Y-%m-%dT%H:%M:%SZ - No mule version loaded" 1>&2
+        fi
     fi
 else
     safe_load $SCITOOLS_MODULE
@@ -86,7 +91,12 @@ else
             # Report Mule loaded and print version info - this is useful for
             # understanding which build of mule has been sourced.
             date -u +"[INFO] %Y-%m-%dT%H:%M:%SZ - Mule version loaded was:"
-            mule-version
+            if which mule-version ; then
+                mule-version
+            else
+                date -u +"[WARNING] %Y-%m-%dT%H:%M:%SZ - No mule version loaded"
+                date -u +"[WARNING] %Y-%m-%dT%H:%M:%SZ - No mule version loaded" 1>&2
+            fi
         fi
     fi
 fi
