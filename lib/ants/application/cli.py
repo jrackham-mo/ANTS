@@ -4,11 +4,11 @@
 # See LICENSE.txt in the root of the repository for full licensing details.
 """Entrypoint for running ANTS applications.
 
-conda env create -p <path/to/install/developer/environment> -f environment.yml
-conda activate <path/to/install/developer/environment>
-pip install -e .
+.. argparse::
+   :module: ants.application.cli
+   :func: _parser
+   :prog: ants
 
-ants --help
 """
 
 import argparse
@@ -55,6 +55,14 @@ def _load_conf(filepath):
     return recipe
 
 
+def _parse_recipe_value(value: str):
+    parsed = os.path.expandvars(value).split(" ")
+    if len(parsed) == 1:
+        return parsed[0]
+    else:
+        return parsed
+
+
 def validate(recipe):  # noqa: D103
     print("Validating recipe:\n", recipe)
 
@@ -68,7 +76,7 @@ def run(recipe):  # noqa: D103
     for source_name, source_loader in app.loaders.items():
         source_section = f"ants.sources.{source_name}"
         source_load_kwargs = {
-            key: os.path.expandvars(value)
+            key: _parse_recipe_value(value)
             for key, value in recipe[source_section].items()
         }
         print(
@@ -80,9 +88,9 @@ def run(recipe):  # noqa: D103
 
     settings = {}
     for setting_name in app.settings:
-        recipe_value = recipe["ants.settings"][setting_name]
-        recipe_value = os.path.expandvars(recipe_value)
-        settings[setting_name] = recipe_value
+        settings[setting_name] = _parse_recipe_value(
+            recipe["ants.settings"][setting_name]
+        )
 
     kwargs = loaded_sources | settings
 
@@ -98,7 +106,7 @@ def run(recipe):  # noqa: D103
         result_name = output_section["result"]
         result = results[result_name]
         save_kwargs = {
-            key: os.path.expandvars(value)
+            key: _parse_recipe_value(value)
             for key, value in output_section.items()
             if key not in ("saver", "result")
         }
@@ -144,6 +152,16 @@ def _gen_entry(param: inspect.Parameter):
 
 
 def main():  # noqa: D103
+    parser = _parser()
+
+    args = parser.parse_args()
+    kwargs = vars(args)
+    func = kwargs.pop("func")
+
+    func(**kwargs)
+
+
+def _parser():
     parser = argparse.ArgumentParser()
     parser.add_argument("--version", action="version", version=__version__)
     subparsers = parser.add_subparsers(title="subcommands")
@@ -177,9 +195,4 @@ def main():  # noqa: D103
         "app_module", help="Python module defining the app"
     )
     recipe_gen_subparser.set_defaults(func=recipe_gen)
-
-    args = parser.parse_args()
-    kwargs = vars(args)
-    func = kwargs.pop("func")
-
-    func(**kwargs)
+    return parser
