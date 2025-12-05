@@ -1,3 +1,7 @@
+# (C) Crown Copyright, Met Office. All rights reserved.
+#
+# This file is part of ANTS and is released under the BSD 3-Clause license.
+# See LICENSE.txt in the root of the repository for full licensing details.
 """Entrypoint for running ANTS applications.
 
 conda env create -p <path/to/install/developer/environment> -f environment.yml
@@ -17,6 +21,7 @@ import sys
 
 import yaml
 from ants import __version__
+from ants.application import Application
 
 
 def resolve_path(filepath: str):  # noqa: D103
@@ -44,7 +49,7 @@ def _load_yaml(filepath):
 
 
 def _load_conf(filepath):
-    config = configparser.ConfigParser()
+    config = configparser.ConfigParser(inline_comment_prefixes=("#", ";"))
     config.read(filepath)
     recipe = {section: dict(config[section]) for section in config.sections()}
     return recipe
@@ -56,20 +61,25 @@ def validate(recipe):  # noqa: D103
 
 def run(recipe):  # noqa: D103
     print(recipe)
-    app = importlib.import_module(recipe["ants"]["app"])
+    app: Application
+    app = importlib.import_module(recipe["ants"]["app"]).app
 
     loaded_sources = {}
-    for source_name, source_loader in app.SOURCES.items():
+    for source_name, source_loader in app.loaders.items():
         source_section = f"ants.sources.{source_name}"
         source_load_kwargs = {
             key: os.path.expandvars(value)
             for key, value in recipe[source_section].items()
         }
+        print(
+            f"Attempting to load {source_name} using {source_loader} with "
+            f"{source_load_kwargs}"
+        )
         loaded_source = source_loader(**source_load_kwargs)
         loaded_sources[source_name] = loaded_source
 
     settings = {}
-    for setting_name in app.SETTINGS:
+    for setting_name in app.settings:
         recipe_value = recipe["ants.settings"][setting_name]
         recipe_value = os.path.expandvars(recipe_value)
         settings[setting_name] = recipe_value
@@ -79,26 +89,36 @@ def run(recipe):  # noqa: D103
     print("Parsed recipe:\n", kwargs)
     results = app.main(**kwargs)
 
-    for output_name, output_savers in app.OUTPUTS.items():
-        result = results[output_name]
-        for saver in output_savers:
-            output_section = f"ants.outputs.{output_name}.{saver.__qualname__}"
-            save_kwargs = {
-                key: os.path.expandvars(config_value)
-                for key, config_value in recipe[output_section].items()
-            }
-            saver(result, **save_kwargs)
+    output_sections = dict(
+        filter(lambda x: x[0].startswith("ants.outputs"), recipe.items())
+    )
+    for output_section in output_sections.values():
+        saver_name = output_section["saver"]
+        saver = app.savers[saver_name]
+        result_name = output_section["result"]
+        result = results[result_name]
+        save_kwargs = {
+            key: os.path.expandvars(value)
+            for key, value in output_section.items()
+            if key not in ("saver", "result")
+        }
+        print(
+            f"Attempting to save {result_name} using {saver_name} with "
+            f"{save_kwargs}"
+        )
+        saver(result, **save_kwargs)
 
 
 def recipe_gen(app_module):
     """Generate a blank recipe file consistent with the given app."""
-    app = importlib.import_module(app_module)
+    app: Application
+    app = importlib.import_module(app_module).app
     recipe = configparser.ConfigParser(allow_no_value=True)
 
     recipe.add_section("ants")
     recipe["ants"]["app"] = app_module
 
-    for source_name, source_loader in app.SOURCES.items():
+    for source_name, source_loader in app.loaders.items():
         source_name_section = f"ants.sources.{source_name}"
         recipe.add_section(source_name_section)
         recipe.set(source_name_section, "# Configure your sources here")
@@ -108,6 +128,10 @@ def recipe_gen(app_module):
         )
         for arg_name, parameter in inspect.signature(source_loader).parameters.items():
             recipe[source_name_section][arg_name] = _gen_entry(parameter)
+
+    recipe.add_section("ants.settings")
+    for setting in app.settings:
+        recipe.set("ants.settings", setting, f"<{setting}>")
 
     recipe.write(sys.stdout)
 

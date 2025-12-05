@@ -33,6 +33,7 @@ import ants.decomposition as decomp
 import ants.io.save
 import ants.utils
 from ants.utils.cube import create_time_constrained_cubes
+from ants.application import Application
 
 
 def load_sources(filepath, begin=None, end=None):
@@ -91,6 +92,7 @@ OUTPUTS = {  # SAVERS
         ants.io.save.ukca_netcdf,
     ],
 }
+
 SETTINGS = ("horizontal_scheme",)
 
 
@@ -174,3 +176,6 @@ def main(
     #     )
 
     return {"regrid_result": regridded_cubes}
+
+
+app = Application(SOURCES, SETTINGS, main)
