@@ -2,10 +2,11 @@
 #
 # This file is part of ANTS and is released under the BSD 3-Clause license.
 # See LICENSE.txt in the root of the repository for full licensing details.
+import inspect
 from collections.abc import Callable
+
 import ants.io.save
 import iris
-import inspect
 
 
 class Application:

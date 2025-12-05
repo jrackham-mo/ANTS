@@ -28,12 +28,13 @@ is produced, regardless of the number of longitude
 points in the regrid target.
 """
 import functools
+
 import ants
 import ants.decomposition as decomp
 import ants.io.save
 import ants.utils
-from ants.utils.cube import create_time_constrained_cubes
 from ants.application import Application
+from ants.utils.cube import create_time_constrained_cubes
 
 
 def load_sources(filepath, begin=None, end=None):
