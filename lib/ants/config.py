@@ -460,7 +460,7 @@ class GlobalConfiguration(object, metaclass=_Singleton):
         # every single key under these groups (only ignoring the non-ants
         # groups).
         for section in self._config.sections():
-            if section.startswith("ants"):
+            if section.startswith("ants_"):
                 # We ignore groups which aren't prefixed with "ants".
                 for name in self._config.options(section):
                     self._get_option(section, name)

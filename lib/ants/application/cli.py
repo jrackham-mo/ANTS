@@ -15,10 +15,12 @@ import argparse
 import configparser
 import importlib
 import inspect
+import logging
 import os
 import pathlib
 import sys
 
+import ants.config
 import yaml
 from ants import __version__
 from ants.application import Application
@@ -31,8 +33,9 @@ def resolve_path(filepath: str):  # noqa: D103
 
 
 def load_recipe(filepath: str):  # noqa: D103
+    ants.config.CONFIG.parse_configuration(filepath)
     filepath = resolve_path(filepath)
-    print(f"Reading recipe from {filepath}")
+    logging.info(f"Reading recipe from {filepath}")
     match filepath.suffix:
         case ".yml" | ".yaml":
             return _load_yaml(filepath)
@@ -64,11 +67,11 @@ def _parse_recipe_value(value: str):
 
 
 def validate(recipe):  # noqa: D103
-    print("Validating recipe:\n", recipe)
+    logging.info("Validating recipe:\n", recipe)
 
 
 def run(recipe):  # noqa: D103
-    print(recipe)
+    logging.info(recipe)
     app: Application
     app = importlib.import_module(recipe["ants"]["app"]).app
 
@@ -79,7 +82,7 @@ def run(recipe):  # noqa: D103
             key: _parse_recipe_value(value)
             for key, value in recipe[source_section].items()
         }
-        print(
+        logging.info(
             f"Attempting to load {source_name} using {source_loader} with "
             f"{source_load_kwargs}"
         )
@@ -94,7 +97,7 @@ def run(recipe):  # noqa: D103
 
     kwargs = loaded_sources | settings
 
-    print("Parsed recipe:\n", kwargs)
+    logging.info("Parsed recipe:\n", kwargs)
     results = app.main(**kwargs)
 
     output_sections = dict(
@@ -110,7 +113,7 @@ def run(recipe):  # noqa: D103
             for key, value in output_section.items()
             if key not in ("saver", "result")
         }
-        print(
+        logging.info(
             f"Attempting to save {result_name} using {saver_name} with "
             f"{save_kwargs}"
         )
