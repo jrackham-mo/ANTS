@@ -76,8 +76,8 @@ license = {file ="LICENSE.txt"}
 requires-python = ">=3.7"
 classifiers = [
     "Programming Language :: Python :: 3",
+    "Operating System :: POSIX :: Linux",
     "License :: OSI Approved :: BSD License",
-    "Operating System :: Unix",
 ]
 
 [project.scripts]
