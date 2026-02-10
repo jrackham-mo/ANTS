@@ -62,7 +62,7 @@ jobs:
             - name: Run pytest
               run: |
                 set -eu
-                PATH=$PATH:$GITHUB_WORKSPACE/mule/_build/bin
-                PYTHONPATH=$PYTHONPATH:$GITHUB_WORKSPACE/mule/_build/lib
+                PATH=$GITHUB_WORKSPACE/mule/_build/bin:${PATH:-}
+                PYTHONPATH=$GITHUB_WORKSPACE/mule/_build/lib:${PYTHONPATH:-}
                 pytest --verbose $GITHUB_WORKSPACE/ANTS
               shell: micromamba-shell {0}
