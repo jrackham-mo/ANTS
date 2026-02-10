@@ -17,8 +17,22 @@ jobs:
         name: Run unit tests
         runs-on: ubuntu-24.04
         steps:
-            - name: Checkout
+            - name: Checkout ANTS
               uses: actions/checkout@v4
+              with:
+                path: ANTS
+
+            - name: Checkout shumlib
+              uses: actions/checkout@v4
+              with:
+                repository: MetOffice/shumlib
+                path: shumlib
+
+            - name: Checkout mule
+              uses: actions/checkout@v4
+              with:
+                repository: MetOffice/mule
+                path: mule
 
             - name: Setup python environment
               uses: mamba-org/setup-micromamba@v2
@@ -27,10 +41,27 @@ jobs:
                 environment-name: ci-env
                 cache-environment: true
 
+            - name: Install shumlib
+              working-directory: ./shumlib
+              run: |
+                echo "Compiling shumlib using $(gfortran --version)"
+                make -f ./make/vm-x86-gfortran-gcc.mk check
+
+            - name: Install Mule
+              working-directory: ./mule
+              run: |
+                ./admin/install_mule.sh --spiral_lib --packing_lib \
+                                        --shumlib_path $GITHUB_WORKSPACE/shumlib/build/vm-x86-gfortran-gcc \
+                                        ./_build/lib ./_build/bin
+
             - name: Install ANTS
-              run: pip install .
+              run: pip install ./ANTS
               shell: micromamba-shell {0}
 
             - name: Run pytest
-              run: pytest --verbose
+              run: |
+                set -eu
+                PATH=$PATH:$GITHUB_WORKSPACE/mule/_build/bin
+                PYTHONPATH=$PYTHONPATH:$GITHUB_WORKSPACE/mule/_build/lib
+                pytest --verbose $GITHUB_WORKSPACE/ANTS
               shell: micromamba-shell {0}
