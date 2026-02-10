@@ -62,8 +62,8 @@ jobs:
             - name: Run pytest
               run: |
                 set -eu
-                PATH=$GITHUB_WORKSPACE/mule/_build/bin:${PATH:-}
-                PYTHONPATH=$GITHUB_WORKSPACE/mule/_build/lib:${PYTHONPATH:-}
+                export PATH=$GITHUB_WORKSPACE/mule/_build/bin:${PATH:-}
+                export PYTHONPATH=$GITHUB_WORKSPACE/mule/_build/lib:${PYTHONPATH:-}
                 echo "PATH: $PATH"
                 ls -la $GITHUB_WORKSPACE/mule/_build/bin
                 echo "PYTHONPATH: $PYTHONPATH"
