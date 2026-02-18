@@ -36,14 +36,14 @@ jobs:
             - name: Get OS version
               id: os-version
               run: |
-                echo "OS_VERSION=$(gcc --version | head -1)" >> "$GITHUB_OUTPUT"
+                echo "OS_VERSION=$(gfortran --version | head -1)" | tee --append "$GITHUB_OUTPUT"
 
             - name: Cache shumlib build
               id: cache-shumlib-build
               uses: actions/cache@v4
               with:
                 path: shumlib/build/${{ env.SHUMLIB_PLATFORM }}
-                key: shumlib-${{ env.SHUMLIB_VERSION }}-${{ env.SHUMLIB_PLATFORM }}-${{ steps.os-version.outputs.OS_VERSION }}
+                key: shumlib-${{ env.SHUMLIB_VERSION }}-${{ env.SHUMLIB_PLATFORM }}-[${{ steps.os-version.outputs.OS_VERSION }}]
 
             - if: ${{ steps.cache-shumlib-build.outputs.cache-hit != 'true' }}
               name: Checkout shumlib
