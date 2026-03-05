@@ -156,8 +156,8 @@ html_theme_options = {
 # -- Options for link checking -----------------------------------------------
 
 linkcheck_ignore = [
-    # Ignore ancillary-file-science - requires membership of Momentum team.
-    r"https://github.com/MetOffice/ancillary-file-science",
     # UM GitHub repo is private
     "https://github.com/MetOffice/um",
+    # ancillary-file-science repo is private
+    "https://github.com/MetOffice/ancillary-file-science",
 ]
