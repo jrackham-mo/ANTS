@@ -150,7 +150,13 @@ html_theme_options = {
         "accessibility",
         "theme-version",
     ],
+    "navbar_start": ["version-switcher"],
     "show_toc_level": 2,
+    "switcher": {
+        # Note: this approach requires the switcher.json to be on the gh-pages branch
+        "json_url": "http://127.0.0.1:8000/switcher.json",
+        "version_match": "3.1",
+    },
 }
 
 # -- Options for link checking -----------------------------------------------
