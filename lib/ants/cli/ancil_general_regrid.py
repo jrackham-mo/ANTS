@@ -28,6 +28,8 @@ it fits the definition of a zonal mean. This ensures that a zonal mean output
 is produced, regardless of the number of longitude
 points in the regrid target.
 """
+from functools import partial
+
 import ants
 import ants.decomposition as decomp
 import ants.io.save as save
@@ -62,6 +64,15 @@ def regrid(sources, target):
     for source in sources:
         results.append(source.regrid(target, scheme))
     return results
+
+
+def _is_vertical_only(target):
+    """Check if the target cube is vertical only.
+
+    A cube is vertical only if it has one dimension, and that dimension
+    corresponds to the z axis.
+    """
+    return bool(target.ndim == 1 and target.coords(axis="z", dim_coords=True))
 
 
 def main(
@@ -139,7 +150,17 @@ def main(
             "UG-ANTS should be used instead."
         )
 
-    regridded_cubes = decomp.decompose(regrid, source_cubes, target_cube)
+    # For a vertical-only regrid, there should be no decomposition target to split up
+    # This is then a unary operation, with the same vertical target cube being
+    # used for every piece of the decomposed source
+    if _is_vertical_only(target_cube):
+        regrid_func = partial(regrid, target=target_cube)
+        decomp_target = None
+    else:
+        regrid_func = regrid
+        decomp_target = target_cube
+
+    regridded_cubes = decomp.decompose(regrid_func, source_cubes, decomp_target)
     if target_lsm_path:
         ants.analysis.make_consistent_with_lsm(
             regridded_cubes, target_cube, invert_mask, search_method
