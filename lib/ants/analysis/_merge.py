@@ -20,6 +20,7 @@ import numpy as np
 import numpy.lib.stride_tricks as stride
 import shapely
 from pykdtree.kdtree import KDTree
+from scipy.ndimage import distance_transform_edt
 from shapely.geometry import Polygon
 from shapely.vectorized import contains
 
@@ -632,7 +633,12 @@ def merge(primary_cube, alternate_cube, validity_polygon=None, blending_distance
         # Transpose the data (view) to allow broadcasting
         primary_data, primary_mask = horizontal_grid_reorder(merged_cube)
         alternate_data, alternate_mask = horizontal_grid_reorder(full_alternate_cube)
-        primary_data[full_mask_outside] = alternate_data[full_mask_outside]
+        if blending_distance:
+            primary_data[...] = blend_data(
+                primary_data, alternate_data, full_mask_outside, blending_distance
+            )
+        else:
+            primary_data[full_mask_outside] = alternate_data[full_mask_outside]
         primary_mask[full_mask_outside] = alternate_mask[full_mask_outside]
 
     # Identify overlap priority using np.nan values (these are assigned
@@ -654,6 +660,13 @@ def merge(primary_cube, alternate_cube, validity_polygon=None, blending_distance
             "Coverage of provided sources is not complete, unable to merge datasets."
         )
     return merged_cube
+
+
+def blend_data(primary_data, alternate_data, full_mask_outside, blending_distance):
+    distance_outside_polygon = distance_transform_edt(full_mask_outside)
+    outside_weight = np.clip(distance_outside_polygon / blending_distance, 0.0, 1.0)
+    blended = (outside_weight * alternate_data) + (1 - outside_weight) * primary_data
+    return blended
 
 
 def _spiral_wrapper(
