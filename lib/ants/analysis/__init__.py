@@ -187,7 +187,7 @@ def standard_deviation(source, src_mean):
     return awm
 
 
-def merge(primary_cube, alternate_cube, validity_polygon=None):
+def merge(primary_cube, alternate_cube, validity_polygon=None, blending_distance=None):
     """
     Merges data from the alternative cube into the primary cube.
 
@@ -241,7 +241,7 @@ def merge(primary_cube, alternate_cube, validity_polygon=None):
     )
     result = iris.cube.CubeList([])
     for src1, src2 in zip(primary_cubes, alternate_cubes):
-        nsource = _merge.merge(src1, src2, validity_polygon)
+        nsource = _merge.merge(src1, src2, validity_polygon, blending_distance)
         result.append(nsource)
     if isinstance(primary_cube, iris.cube.Cube):
         result = result[0]

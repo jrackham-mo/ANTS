@@ -485,7 +485,7 @@ def _unified_grid(cube, cube2):
     return merged_cube
 
 
-def merge(primary_cube, alternate_cube, validity_polygon=None):
+def merge(primary_cube, alternate_cube, validity_polygon=None, blending_distance=None):
     """
     Merges data from the alternative cube into the primary cube.
 
@@ -630,21 +630,21 @@ def merge(primary_cube, alternate_cube, validity_polygon=None):
 
         # Apply data which is outside of the polygon to the other.
         # Transpose the data (view) to allow broadcasting
-        pdata, pmask = horizontal_grid_reorder(merged_cube)
-        adata, amask = horizontal_grid_reorder(full_alternate_cube)
-        pdata[full_mask_outside] = adata[full_mask_outside]
-        pmask[full_mask_outside] = amask[full_mask_outside]
+        primary_data, primary_mask = horizontal_grid_reorder(merged_cube)
+        alternate_data, alternate_mask = horizontal_grid_reorder(full_alternate_cube)
+        primary_data[full_mask_outside] = alternate_data[full_mask_outside]
+        primary_mask[full_mask_outside] = alternate_mask[full_mask_outside]
 
     # Identify overlap priority using np.nan values (these are assigned
     # when source cells are beyond the extent of the target grid whilst
     # regridding).
-    pdata, pmask = horizontal_grid_reorder(merged_cube)
-    adata, amask = horizontal_grid_reorder(full_alternate_cube)
-    slices = [slice(None)] * pdata.ndim
-    slices[2:] = [0] * (pdata.ndim - 2)
-    nan_mask = np.isnan(pdata[tuple(slices)])
-    pdata[nan_mask] = adata[nan_mask]
-    pmask[nan_mask] = amask[nan_mask]
+    primary_data, primary_mask = horizontal_grid_reorder(merged_cube)
+    alternate_data, alternate_mask = horizontal_grid_reorder(full_alternate_cube)
+    slices = [slice(None)] * primary_data.ndim
+    slices[2:] = [0] * (primary_data.ndim - 2)
+    nan_mask = np.isnan(primary_data[tuple(slices)])
+    primary_data[nan_mask] = alternate_data[nan_mask]
+    primary_mask[nan_mask] = alternate_mask[nan_mask]
 
     # Clear some memory if we can
     np.ma.MaskedArray.shrink_mask(merged_cube.data)

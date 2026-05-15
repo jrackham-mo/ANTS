@@ -96,6 +96,7 @@ def main(
     end,
     netcdf_only,
     search_method,
+    blending_distance,
 ):
     """
     Perform merge and fill operation on the provided sources.
@@ -163,7 +164,9 @@ def main(
 
     result = primary_cubes
     if alternate_cubes is not None:
-        result = ants.analysis.merge(primary_cubes, alternate_cubes, validity_polygon)
+        result = ants.analysis.merge(
+            primary_cubes, alternate_cubes, validity_polygon, blending_distance
+        )
     if target_mask_filepath:
         ants.analysis.make_consistent_with_lsm(result, lbm, invert_mask, search_method)
 
@@ -226,6 +229,7 @@ def _get_parser():
         required=False,
         default="spiral",
     )
+    parser.add_argument("--blending-distance", type=float)
     return parser
 
 
@@ -251,6 +255,7 @@ def cli_interface():
         end=args.end,
         netcdf_only=args.netcdf_only,
         search_method=args.search_method,
+        blending_distance=args.blending_distance,
     )
 
 
