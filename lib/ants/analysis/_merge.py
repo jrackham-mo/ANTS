@@ -741,6 +741,18 @@ def blend_data(
         raise ValueError(
             f"Invalid blending_distance: {blending_distance}. Must be greater than zero"
         )
+    if primary_data.shape != alternate_data.shape:
+        raise ValueError(
+            "Cannot blend sources with different shapes. "
+            f"Primary shape: {primary_data.shape}, "
+            f"Alternate shape: {alternate_data.shape}"
+        )
+    if primary_data.shape != mask_outside.shape:
+        raise ValueError(
+            "Cannot blend sources as mask shape is inconsistent with source shape. "
+            f"Source shape: {primary_data.shape}, Mask shape: {mask_outside.shape}"
+        )
+
     distance_outside_polygon = distance_transform_edt(mask_outside)
     outside_weight = np.clip(distance_outside_polygon / blending_distance, 0.0, 1.0)
     blended = (outside_weight * alternate_data) + (1 - outside_weight) * primary_data
