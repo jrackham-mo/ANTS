@@ -195,8 +195,15 @@ def merge(primary_cube, alternate_cube, validity_polygon=None, blending_distance
     cube which lay outside the provided polygon, override the values of the
     primary at those locations.  Containment is defined as any cell corner
     which lies within the polygon.  "Within" explicitly does not include
-    those points which exactly lay on the polygon boundary.  Where multiple
-    primary and alternate cubes are provided, then these are paired
+    those points which exactly lay on the polygon boundary.
+
+    A blending between the sources can be applied by specifying the
+    ``blending_distance`` (for no blending, pass ``None``). A linear blending
+    between the primary and alternate sources will be applied in the region
+    immediately outside the polygon over the blending distance.
+    Beyond the blending distance, the alternate source is used.
+
+    Where multiple primary and alternate cubes are provided, then these are paired
     appropriately where possible.  Where these datasets are not defined on the
     same grid, the user should consider a regrid first to then utilise merge.
 
@@ -220,6 +227,12 @@ def merge(primary_cube, alternate_cube, validity_polygon=None, blending_distance
         stacked together with the primary_cube taking priority over
         alternate_cube in the case of an overlap. A runtime error will be
         raised if the primary_cube is wholly within the validity_polygon.
+    blending_distance : float
+        Distance over which blending between the primary and alternate sources
+        is applied. Note that this is in units of grid cells, not a physical distance.
+        If ``None``, no blending is applied, and there will be a hard edge between
+        the two sources.
+
 
     Returns
     -------

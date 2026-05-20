@@ -500,6 +500,12 @@ def merge(primary_cube, alternate_cube, validity_polygon=None, blending_distance
     in the primary cube dataset, overrides that elements validity defined in
     the cases of a specified validity polygon.
 
+    A blending between the sources can be applied by specifying the
+    ``blending_distance`` (for no blending, pass ``None``). A linear blending
+    between the primary and alternate sources will be applied in the region
+    immediately outside the polygon over the blending distance.
+    Beyond the blending distance, the alternate source is used.
+
     Parameters
     ----------
     primary_cube : `~iris.cube.Cube`
@@ -520,6 +526,11 @@ def merge(primary_cube, alternate_cube, validity_polygon=None, blending_distance
         alternate_cube in the case of an overlap.
         If a validity polygon is provided and the entire primary_cube dataset
         is within the polygon then a Runtime error will be raised.
+    blending_distance : float
+        Distance over which blending between the primary and alternate sources
+        is applied. Note that this is in units of grid cells, not a physical distance.
+        If ``None``, no blending is applied, and there will be a hard edge between
+        the two sources.
 
     Raises
     ------
@@ -662,8 +673,71 @@ def merge(primary_cube, alternate_cube, validity_polygon=None, blending_distance
     return merged_cube
 
 
-def blend_data(primary_data, alternate_data, full_mask_outside, blending_distance):
-    distance_outside_polygon = distance_transform_edt(full_mask_outside)
+def blend_data(
+    primary_data: np.ndarray,
+    alternate_data: np.ndarray,
+    mask_outside: np.ndarray,
+    blending_distance: float,
+):
+    """Blend two data sources across a specified blending distance.
+
+    Returns an array with a weighted combination of data selected from the
+    primary and alternate sources, as determined by the provided mask.
+    This is calculated as follows:
+
+    1. For all points where ``mask == False``, use the primary source
+       (call this the "primary region").
+    2. For all points where ``mask == True``, determine the distance to the nearest
+       point in the primary region.
+    3. If this distance is greater than the blending distance, use the alternate source.
+    4. If this distance is less than the blending distance, weight the two datasets
+       using a linear combination: blended = w * alternate + (1 - w) * primary,
+       where w = distance / blending_distance.
+
+    The following diagram illustrates the blending in one dimension, with a
+    blending_distance of 4.
+
+    secondary              ___________
+                          /
+                         /
+    primary  ___________/
+
+    mask     0000000000011111111111111
+
+    Parameters
+    ----------
+    primary_data : np.ndarray
+        Source data to be used
+    alternate_data : np.ndarray
+        Source data to be used
+    mask_outside : np.ndarray
+        A boolean mask identifying the two regions: False for the primary source
+        region and True for the alternate source region.
+    blending_distance : float
+        Distance over which blending between the primary and alternate sources
+        is applied. Note that this is in units of grid cells, not a physical distance.
+        As such, this is resolution dependent. See notes for more detail.
+
+    Returns
+    -------
+    blended : nd.ndarray
+        The blended data
+
+    Notes
+    -----
+    The three arrays ``primary_data``, ``alternate_data`` and ``full_mask_outside``
+    must have the same shape.
+
+    This function uses :func:`scipy.ndimage.distance_transform_edt` to calculate
+    distances between points on the grid. As such, it has no knowledge of physical
+    distance or coordinate reference systems.
+
+    Warning
+    -------
+    This function does not support masked arrays. Passing a masked array may result
+    in unexpected behaviour.
+    """
+    distance_outside_polygon = distance_transform_edt(mask_outside)
     outside_weight = np.clip(distance_outside_polygon / blending_distance, 0.0, 1.0)
     blended = (outside_weight * alternate_data) + (1 - outside_weight) * primary_data
     return blended
