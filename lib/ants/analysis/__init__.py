@@ -231,8 +231,7 @@ def merge(primary_cube, alternate_cube, validity_polygon=None, blending_distance
         Distance over which blending between the primary and alternate sources
         is applied. Note that this is in units of grid cells, not a physical distance.
         If ``None``, no blending is applied, and there will be a hard edge between
-        the two sources.
-
+        the two sources. This option is only valid with a provided validity polygon.
 
     Returns
     -------
@@ -245,6 +244,11 @@ def merge(primary_cube, alternate_cube, validity_polygon=None, blending_distance
         If the primary cube is wholly within a provided ``validity_polygon``.
 
     """
+    if blending_distance and validity_polygon is None:
+        raise ValueError(
+            "blending_distance can only be used with a validity_polygon. "
+            f"No polygon was provided, but got {blending_distance=}"
+        )
     primary_cubes = ants.utils.cube.as_cubelist(primary_cube)
     alternate_cubes = ants.utils.cube.as_cubelist(alternate_cube)
 
