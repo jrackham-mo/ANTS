@@ -737,6 +737,10 @@ def blend_data(
     This function does not support masked arrays. Passing a masked array may result
     in unexpected behaviour.
     """
+    if blending_distance <= 0:
+        raise ValueError(
+            f"Invalid blending_distance: {blending_distance}. Must be greater than zero"
+        )
     distance_outside_polygon = distance_transform_edt(mask_outside)
     outside_weight = np.clip(distance_outside_polygon / blending_distance, 0.0, 1.0)
     blended = (outside_weight * alternate_data) + (1 - outside_weight) * primary_data
