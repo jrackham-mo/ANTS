@@ -7,86 +7,129 @@ import pytest
 from ants.analysis._merge import blend_data
 
 
-def test_invalid_blending_distance():
-    primary = np.array([0])
-    alternate = np.array([0])
-    mask = np.array([0])
-    blending_distance = 0
-    expected_msg = "Invalid blending_distance: 0. Must be greater than zero"
-    with pytest.raises(ValueError, match=expected_msg):
-        blend_data(primary, alternate, mask, blending_distance)
+class TestExceptions:
+    def test_invalid_blending_distance_0(self):
+        primary = np.array([0])
+        alternate = np.array([0])
+        mask = np.array([0])
+        blending_distance = 0
+        expected_msg = "Invalid blending_distance: 0. Must be greater than zero"
+        with pytest.raises(ValueError, match=expected_msg):
+            blend_data(primary, alternate, mask, blending_distance)
+
+    def test_blending_distance_too_large(self):
+        primary = np.zeros((10, 10))
+        alternate = np.ones_like(primary)
+        mask = primary.copy()
+        blending_distance = 6
+        expected_msg = "Invalid blending_distance: greater than half the domain size"
+        with pytest.raises(ValueError, match=expected_msg):
+            blend_data(primary, alternate, mask, blending_distance)
+
+    def test_1D_fails(self):
+        primary = np.zeros(3)
+        alternate = np.ones_like(primary)
+        mask = primary.copy()
+        blending_distance = 2
+        expected_msg = "Can only blend 2-dimensional data, got data with 1 dimensions"
+        with pytest.raises(ValueError, match=expected_msg):
+            blend_data(primary, alternate, mask, blending_distance)
+
+    def test_3D_fails(self):
+        primary = np.zeros((3, 3, 3))
+        alternate = np.ones_like(primary)
+        mask = primary.copy()
+        blending_distance = 2
+        expected_msg = "Can only blend 2-dimensional data, got data with 3 dimensions"
+        with pytest.raises(ValueError, match=expected_msg):
+            blend_data(primary, alternate, mask, blending_distance)
+
+    def test_different_source_shapes(self):
+        primary = np.zeros((2, 3))
+        alternate = np.ones((3, 2))
+        mask = np.ones_like(primary, dtype=bool)
+        blending_distance = 1
+
+        expected_msg = (
+            "Cannot blend sources with different shapes. "
+            r"Primary shape: \(2, 3\), Alternate shape: \(3, 2\)"
+        )
+        with pytest.raises(ValueError, match=expected_msg):
+            blend_data(primary, alternate, mask, blending_distance)
+
+    def test_different_source_and_mask_shapes(self):
+        primary = np.zeros((2, 3))
+        alternate = np.ones_like(primary)
+        mask = np.ones((3, 2), dtype=bool)
+        blending_distance = 1
+
+        expected_msg = (
+            "Cannot blend sources as mask shape is inconsistent with source shape. "
+            r"Source shape: \(2, 3\), Mask shape: \(3, 2\)"
+        )
+        with pytest.raises(ValueError, match=expected_msg):
+            blend_data(primary, alternate, mask, blending_distance)
 
 
-def test_blending_1D():
-    primary = np.zeros((7,), dtype=np.float64)
-    alternate = np.ones_like(primary)
-    mask = np.array([0, 0, 1, 1, 1, 1, 1], dtype=bool)
-    blending_distance = 4
+class TestFunctionality:
+    @pytest.fixture()
+    def primary(self):
+        return np.zeros((7, 7), dtype=np.float64)
 
-    expected = np.array([0, 0, 0.25, 0.5, 0.75, 1, 1])
+    @pytest.fixture()
+    def alternate(self):
+        return np.ones((7, 7), dtype=np.float64)
 
-    blended = blend_data(primary, alternate, mask, blending_distance)
+    @pytest.fixture()
+    def mask(self):
+        mask = np.array(
+            [
+                [1, 1, 1, 1, 1, 1, 1],
+                [1, 1, 1, 1, 1, 1, 1],
+                [1, 1, 1, 1, 1, 1, 1],
+                [1, 1, 1, 0, 0, 1, 1],
+                [1, 1, 1, 0, 0, 0, 1],
+                [1, 1, 1, 0, 0, 0, 0],
+                [1, 1, 1, 0, 0, 0, 0],
+            ],
+            dtype=bool,
+        )
+        return mask
 
-    np.testing.assert_array_equal(blended, expected)
+    def test_blending_2D(self, primary, alternate, mask):
+        blending_distance = 2.5
 
+        expected = np.array(
+            [
+                [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0],
+                [1.0, 1.0, 0.89442719, 0.8, 0.8, 0.89442719, 1.0],
+                [1.0, 0.89442719, 0.56568542, 0.4, 0.4, 0.56568542, 0.89442719],
+                [1.0, 0.8, 0.4, 0.0, 0.0, 0.4, 0.56568542],
+                [1.0, 0.8, 0.4, 0.0, 0.0, 0.0, 0.4],
+                [1.0, 0.8, 0.4, 0.0, 0.0, 0.0, 0.0],
+                [1.0, 0.8, 0.4, 0.0, 0.0, 0.0, 0.0],
+            ]
+        )
 
-def test_blending_2D():
-    primary = np.zeros((7, 7), dtype=np.float64)
-    alternate = np.ones_like(primary)
-    mask = np.array(
-        [
-            [1, 1, 1, 1, 1, 1, 1],
-            [1, 1, 1, 1, 1, 1, 1],
-            [1, 1, 1, 1, 1, 1, 1],
-            [1, 1, 0, 0, 0, 1, 1],
-            [1, 0, 0, 0, 0, 0, 1],
-            [1, 0, 0, 0, 0, 0, 1],
-            [1, 0, 0, 0, 0, 0, 1],
-        ],
-        dtype=bool,
-    )
-    blending_distance = 2.5
+        blended = blend_data(primary, alternate, mask, blending_distance)
 
-    expected = np.array(
-        [
-            [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0],
-            [1.0, 0.89442719, 0.8, 0.8, 0.8, 0.89442719, 1.0],
-            [0.89442719, 0.56568542, 0.4, 0.4, 0.4, 0.56568542, 0.89442719],
-            [0.56568542, 0.4, 0.0, 0.0, 0.0, 0.4, 0.56568542],
-            [0.4, 0.0, 0.0, 0.0, 0.0, 0.0, 0.4],
-            [0.4, 0.0, 0.0, 0.0, 0.0, 0.0, 0.4],
-            [0.4, 0.0, 0.0, 0.0, 0.0, 0.0, 0.4],
-        ]
-    )
+        np.testing.assert_array_almost_equal(blended, expected)
 
-    blended = blend_data(primary, alternate, mask, blending_distance)
+    def test_blending_2D_circular(self, primary, alternate, mask):
+        blending_distance = 2.5
 
-    np.testing.assert_array_almost_equal(blended, expected)
+        expected = np.array(
+            [
+                [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0],
+                [1.0, 1.0, 0.89442719, 0.8, 0.8, 0.89442719, 1.0],
+                [1.0, 0.89442719, 0.56568542, 0.4, 0.4, 0.56568542, 0.89442719],
+                [0.89442719, 0.8, 0.4, 0.0, 0.0, 0.4, 0.56568542],
+                [0.56568542, 0.8, 0.4, 0.0, 0.0, 0.0, 0.4],
+                [0.4, 0.8, 0.4, 0.0, 0.0, 0.0, 0.0],
+                [0.4, 0.8, 0.4, 0.0, 0.0, 0.0, 0.0],
+            ]
+        )
 
+        blended = blend_data(primary, alternate, mask, blending_distance, circular=True)
 
-def test_different_source_shapes():
-    primary = np.zeros((2, 3))
-    alternate = np.ones((3, 2))
-    mask = np.ones_like(primary, dtype=bool)
-    blending_distance = 1
-
-    expected_msg = (
-        "Cannot blend sources with different shapes. "
-        r"Primary shape: \(2, 3\), Alternate shape: \(3, 2\)"
-    )
-    with pytest.raises(ValueError, match=expected_msg):
-        blend_data(primary, alternate, mask, blending_distance)
-
-
-def test_different_source_and_mask_shapes():
-    primary = np.zeros((2, 3))
-    alternate = np.ones_like(primary)
-    mask = np.ones((3, 2), dtype=bool)
-    blending_distance = 1
-
-    expected_msg = (
-        "Cannot blend sources as mask shape is inconsistent with source shape. "
-        r"Source shape: \(2, 3\), Mask shape: \(3, 2\)"
-    )
-    with pytest.raises(ValueError, match=expected_msg):
-        blend_data(primary, alternate, mask, blending_distance)
+        np.testing.assert_array_almost_equal(blended, expected)

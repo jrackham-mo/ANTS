@@ -678,6 +678,7 @@ def blend_data(
     alternate_data: np.ndarray,
     mask_outside: np.ndarray,
     blending_distance: float,
+    circular: bool = False,
 ):
     """Blend two data sources across a specified blending distance.
 
@@ -737,9 +738,38 @@ def blend_data(
     This function does not support masked arrays. Passing a masked array may result
     in unexpected behaviour.
     """
+    _validate_blend_args(primary_data, alternate_data, mask_outside, blending_distance)
+
+    if circular:
+        # Pad either side of the domain to allow for wraparound in x
+        # Do not pad in y direction
+        pad_width_x = int(np.ceil(blending_distance))
+        pad_width = [(0, 0), (pad_width_x, pad_width_x)]
+        mask_outside = np.pad(mask_outside, pad_width, mode="wrap")
+
+    distance_outside_primary_region = distance_transform_edt(mask_outside)
+
+    if circular:
+        # Retrieve central slice of the padded distance array
+        npoints_x = primary_data.shape[-1]
+        slice_x = slice(pad_width_x, pad_width_x + npoints_x)
+        distance_outside_primary_region = distance_outside_primary_region[:, slice_x]
+    outside_weight = np.clip(
+        distance_outside_primary_region / blending_distance, 0.0, 1.0
+    )
+    blended = (outside_weight * alternate_data) + (1 - outside_weight) * primary_data
+    return blended
+
+
+def _validate_blend_args(primary_data, alternate_data, mask_outside, blending_distance):
     if blending_distance <= 0:
         raise ValueError(
             f"Invalid blending_distance: {blending_distance}. Must be greater than zero"
+        )
+    if primary_data.ndim != 2:
+        raise ValueError(
+            "Can only blend 2-dimensional data, got data with "
+            f"{primary_data.ndim} dimensions"
         )
     if primary_data.shape != alternate_data.shape:
         raise ValueError(
@@ -752,11 +782,8 @@ def blend_data(
             "Cannot blend sources as mask shape is inconsistent with source shape. "
             f"Source shape: {primary_data.shape}, Mask shape: {mask_outside.shape}"
         )
-
-    distance_outside_polygon = distance_transform_edt(mask_outside)
-    outside_weight = np.clip(distance_outside_polygon / blending_distance, 0.0, 1.0)
-    blended = (outside_weight * alternate_data) + (1 - outside_weight) * primary_data
-    return blended
+    if blending_distance > min(primary_data.shape) / 2:
+        raise ValueError("Invalid blending_distance: greater than half the domain size")
 
 
 def _spiral_wrapper(
