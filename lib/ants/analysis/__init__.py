@@ -245,18 +245,13 @@ def merge(primary_cube, alternate_cube, validity_polygon=None, blending_distance
         If the primary cube is wholly within a provided ``validity_polygon``.
 
     """
-    if blending_distance and validity_polygon is None:
-        raise ValueError(
-            "blending_distance can only be used with a validity_polygon. "
-            f"No polygon was provided, but got {blending_distance=}"
-        )
-    if blending_distance and not ants.utils.cube.is_single_level(primary_cube):
-        raise ValueError(
-            "Blending is only supported for single level data sources. "
-            "The primary data source is not single level"
-        )
     primary_cubes = ants.utils.cube.as_cubelist(primary_cube)
     alternate_cubes = ants.utils.cube.as_cubelist(alternate_cube)
+
+    if blending_distance:
+        _validate_args_with_blending(
+            primary_cubes, alternate_cubes, validity_polygon, blending_distance
+        )
 
     # Group (sort) cubes so they are ordered in a way suitable for merging.
     primary_cubes, alternate_cubes = ants.utils.cube.sort_cubes(
@@ -269,6 +264,33 @@ def merge(primary_cube, alternate_cube, validity_polygon=None, blending_distance
     if isinstance(primary_cube, iris.cube.Cube):
         result = result[0]
     return result
+
+
+def _validate_args_with_blending(
+    primary_cubes, alternate_cubes, validity_polygon, blending_distance
+):
+    """Specific validation for merge arguments when blending is provided."""
+    if validity_polygon is None:
+        raise ValueError(
+            "blending_distance can only be used with a validity_polygon. "
+            f"No polygon was provided, but got {blending_distance=}"
+        )
+
+    all_primary_single_level = all(map(ants.utils.cube.is_single_level, primary_cubes))
+    if not all_primary_single_level:
+        raise ValueError(
+            "Blending is only supported for single level data sources. "
+            "The primary data source is not single level"
+        )
+
+    all_alternate_single_level = all(
+        map(ants.utils.cube.is_single_level, alternate_cubes)
+    )
+    if not all_alternate_single_level:
+        raise ValueError(
+            "Blending is only supported for single level data sources. "
+            "The alternate data source is not single level"
+        )
 
 
 def _flood_fill_neighbour_identify(

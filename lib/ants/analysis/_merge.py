@@ -645,8 +645,13 @@ def merge(primary_cube, alternate_cube, validity_polygon=None, blending_distance
         primary_data, primary_mask = horizontal_grid_reorder(merged_cube)
         alternate_data, alternate_mask = horizontal_grid_reorder(full_alternate_cube)
         if blending_distance:
+            is_circular = primary_cube.coord(axis="x").circular
             primary_data[...] = blend_data(
-                primary_data, alternate_data, full_mask_outside, blending_distance
+                primary_data,
+                alternate_data,
+                full_mask_outside,
+                blending_distance,
+                is_circular,
             )
         else:
             primary_data[full_mask_outside] = alternate_data[full_mask_outside]
