@@ -646,6 +646,7 @@ def merge(primary_cube, alternate_cube, validity_polygon=None, blending_distance
         alternate_data, alternate_mask = horizontal_grid_reorder(full_alternate_cube)
         if blending_distance:
             is_circular = primary_cube.coord(axis="x").circular
+            breakpoint()
             primary_data[...] = blend_data(
                 primary_data,
                 alternate_data,
@@ -679,46 +680,46 @@ def merge(primary_cube, alternate_cube, validity_polygon=None, blending_distance
 
 
 def blend_data(
-    primary_data: np.ndarray,
-    alternate_data: np.ndarray,
-    mask_outside: np.ndarray,
+    from_array: np.ndarray,
+    into_array: np.ndarray,
+    mask: np.ndarray,
     blending_distance: float,
     circular: bool = False,
 ):
     """Blend two data sources across a specified blending distance.
 
-    Returns an array with a weighted combination of data selected from the
-    primary and alternate sources, as determined by the provided mask.
+    Returns an array with a weighted combination of data selected from the two
+    sources, as determined by the provided mask.
+
     This is calculated as follows:
 
-    1. For all points where ``mask == False``, use the primary source
-       (call this the "primary region").
+    1. For all points where ``mask == False``, use the "from" source
     2. For all points where ``mask == True``, determine the distance to the nearest
-       point in the primary region.
-    3. If this distance is greater than the blending distance, use the alternate source.
+       point in the "from" region.
+    3. If this distance is greater than the blending distance, use the "into" source.
     4. If this distance is less than the blending distance, weight the two datasets
-       using a linear combination: blended = w * alternate + (1 - w) * primary,
+       using a linear combination: blended = w * from_array + (1 - w) * into_array,
        where w = distance / blending_distance.
 
     The following diagram illustrates the blending in one dimension, with a
     blending_distance of 4.
 
-    secondary              ___________
-                          /
-                         /
-    primary  ___________/
+    into                ___________
+                       /
+                      /
+    from  ___________/
 
-    mask     0000000000011111111111111
+    mask  0000000000011111111111111
 
     Parameters
     ----------
-    primary_data : np.ndarray
-        Source data to be used
-    alternate_data : np.ndarray
-        Source data to be used
-    mask_outside : np.ndarray
-        A boolean mask identifying the two regions: False for the primary source
-        region and True for the alternate source region.
+    from_array : np.ndarray
+        Source data to be blended from
+    into_array : np.ndarray
+        Source data to be blended into
+    mask : np.ndarray
+        A boolean mask identifying the two regions: False for the "from" source
+        region and True for the "into" source region.
     blending_distance : float
         Distance over which blending between the primary and alternate sources
         is applied. Note that this is in units of grid cells, not a physical distance.
@@ -731,7 +732,7 @@ def blend_data(
 
     Notes
     -----
-    The three arrays ``primary_data``, ``alternate_data`` and ``full_mask_outside``
+    The three arrays ``from_array``, ``into_array`` and ``mask``
     must have the same shape.
 
     This function uses :func:`scipy.ndimage.distance_transform_edt` to calculate
@@ -743,51 +744,50 @@ def blend_data(
     This function does not support masked arrays. Passing a masked array may result
     in unexpected behaviour.
     """
-    _validate_blend_args(primary_data, alternate_data, mask_outside, blending_distance)
+    _validate_blend_args(from_array, into_array, mask, blending_distance)
 
     if circular:
         # Pad either side of the domain to allow for wraparound in x
         # Do not pad in y direction
         pad_width_x = int(np.ceil(blending_distance))
         pad_width = [(0, 0), (pad_width_x, pad_width_x)]
-        mask_outside = np.pad(mask_outside, pad_width, mode="wrap")
+        mask = np.pad(mask, pad_width, mode="wrap")
 
-    distance_outside_primary_region = distance_transform_edt(mask_outside)
+    distance_outside_primary_region = distance_transform_edt(mask)
 
     if circular:
         # Retrieve central slice of the padded distance array
-        npoints_x = primary_data.shape[-1]
+        npoints_x = from_array.shape[-1]
         slice_x = slice(pad_width_x, pad_width_x + npoints_x)
         distance_outside_primary_region = distance_outside_primary_region[:, slice_x]
     outside_weight = np.clip(
         distance_outside_primary_region / blending_distance, 0.0, 1.0
     )
-    blended = (outside_weight * alternate_data) + (1 - outside_weight) * primary_data
+    blended = (outside_weight * into_array) + (1 - outside_weight) * from_array
     return blended
 
 
-def _validate_blend_args(primary_data, alternate_data, mask_outside, blending_distance):
+def _validate_blend_args(from_array, into_array, mask, blending_distance):
     if blending_distance <= 0:
         raise ValueError(
             f"Invalid blending_distance: {blending_distance}. Must be greater than zero"
         )
-    if primary_data.ndim != 2:
+    if from_array.ndim != 2:
         raise ValueError(
             "Can only blend 2-dimensional data, got data with "
-            f"{primary_data.ndim} dimensions"
+            f"{from_array.ndim} dimensions"
         )
-    if primary_data.shape != alternate_data.shape:
+    if from_array.shape != into_array.shape:
         raise ValueError(
-            "Cannot blend sources with different shapes. "
-            f"Primary shape: {primary_data.shape}, "
-            f"Alternate shape: {alternate_data.shape}"
+            f"Cannot blend sources with different shapes: "
+            f"{from_array.shape} and {into_array.shape}"
         )
-    if primary_data.shape != mask_outside.shape:
+    if from_array.shape != mask.shape:
         raise ValueError(
             "Cannot blend sources as mask shape is inconsistent with source shape. "
-            f"Source shape: {primary_data.shape}, Mask shape: {mask_outside.shape}"
+            f"Source shape: {from_array.shape}, Mask shape: {mask.shape}"
         )
-    if blending_distance > min(primary_data.shape) / 2:
+    if blending_distance > min(from_array.shape) / 2:
         raise ValueError("Invalid blending_distance: greater than half the domain size")
 
 

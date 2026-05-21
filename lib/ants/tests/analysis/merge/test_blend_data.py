@@ -51,8 +51,7 @@ class TestExceptions:
         blending_distance = 1
 
         expected_msg = (
-            "Cannot blend sources with different shapes. "
-            r"Primary shape: \(2, 3\), Alternate shape: \(3, 2\)"
+            r"Cannot blend sources with different shapes: \(2, 3\) and \(3, 2\)"
         )
         with pytest.raises(ValueError, match=expected_msg):
             blend_data(primary, alternate, mask, blending_distance)
