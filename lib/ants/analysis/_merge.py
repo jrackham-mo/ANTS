@@ -646,13 +646,12 @@ def merge(primary_cube, alternate_cube, validity_polygon=None, blending_distance
         alternate_data, alternate_mask = horizontal_grid_reorder(full_alternate_cube)
         if blending_distance:
             is_circular = primary_cube.coord(axis="x").circular
-            breakpoint()
             primary_data[...] = blend_data(
-                primary_data,
-                alternate_data,
-                full_mask_outside,
-                blending_distance,
-                is_circular,
+                from_array=alternate_data,
+                into_array=primary_data,
+                mask=~full_mask_outside,
+                blending_distance=blending_distance,
+                circular=is_circular,
             )
         else:
             primary_data[full_mask_outside] = alternate_data[full_mask_outside]
@@ -721,7 +720,7 @@ def blend_data(
         A boolean mask identifying the two regions: False for the "from" source
         region and True for the "into" source region.
     blending_distance : float
-        Distance over which blending between the primary and alternate sources
+        Distance over which blending between the sources
         is applied. Note that this is in units of grid cells, not a physical distance.
         As such, this is resolution dependent. See notes for more detail.
 
@@ -753,17 +752,23 @@ def blend_data(
         pad_width = [(0, 0), (pad_width_x, pad_width_x)]
         mask = np.pad(mask, pad_width, mode="wrap")
 
-    distance_outside_primary_region = distance_transform_edt(mask)
+    distance_into_region = distance_transform_edt(mask)
+    max_distance_into_region = distance_into_region.max()
+    if max_distance_into_region < blending_distance:
+        warnings.warn(
+            "All points within the blending region are within the blending distance. "
+            f"Specified {blending_distance=}, maximum distance into domain: "
+            f"{max_distance_into_region}"
+        )
 
     if circular:
         # Retrieve central slice of the padded distance array
         npoints_x = from_array.shape[-1]
         slice_x = slice(pad_width_x, pad_width_x + npoints_x)
-        distance_outside_primary_region = distance_outside_primary_region[:, slice_x]
-    outside_weight = np.clip(
-        distance_outside_primary_region / blending_distance, 0.0, 1.0
-    )
-    blended = (outside_weight * into_array) + (1 - outside_weight) * from_array
+        distance_into_region = distance_into_region[:, slice_x]
+
+    into_weight = np.clip(distance_into_region / blending_distance, 0.0, 1.0)
+    blended = (into_weight * into_array) + (1 - into_weight) * from_array
     return blended
 
 
@@ -788,7 +793,10 @@ def _validate_blend_args(from_array, into_array, mask, blending_distance):
             f"Source shape: {from_array.shape}, Mask shape: {mask.shape}"
         )
     if blending_distance > min(from_array.shape) / 2:
-        raise ValueError("Invalid blending_distance: greater than half the domain size")
+        raise ValueError(
+            f"Invalid {blending_distance=}: greater than half the domain size "
+            f"(shape={from_array.shape})"
+        )
 
 
 def _spiral_wrapper(
