@@ -200,7 +200,7 @@ def merge(primary_cube, alternate_cube, validity_polygon=None, blending_distance
     A blending between the sources can be applied by specifying the
     ``blending_distance`` (for no blending, pass ``None``). A linear blending
     between the primary and alternate sources will be applied in the region
-    immediately outside the polygon over the blending distance.
+    immediately inside the polygon over the blending distance.
     Beyond the blending distance, the alternate source is used.
 
     Where multiple primary and alternate cubes are provided, then these are paired
