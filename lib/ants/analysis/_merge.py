@@ -756,7 +756,7 @@ def blend_data(
     max_distance_into_region = distance_into_region.max()
     if max_distance_into_region < blending_distance:
         warnings.warn(
-            "All points within the blending region are within the blending distance. "
+            "All points within the region are within the blending distance. "
             f"Specified {blending_distance=}, maximum distance into domain: "
             f"{max_distance_into_region}"
         )

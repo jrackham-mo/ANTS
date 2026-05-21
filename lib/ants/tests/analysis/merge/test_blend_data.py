@@ -72,6 +72,27 @@ class TestExceptions:
         with pytest.raises(ValueError, match=expected_msg):
             blend_data(source1, source2, mask, blending_distance)
 
+    def test_blending_covers_entire_region(self):
+        source1 = np.zeros((5, 5))
+        source2 = np.ones_like(source1)
+        mask = np.array(
+            [
+                [0, 0, 0, 0, 0],
+                [0, 1, 1, 1, 0],
+                [0, 1, 1, 1, 0],
+                [0, 0, 0, 0, 0],
+                [0, 0, 0, 0, 0],
+            ],
+            dtype=bool,
+        )
+        blending_distance = 2.0
+        expected_msg = (
+            "All points within the region are within the blending distance. "
+            "Specified blending_distance=2.0, maximum distance into domain: 1.0"
+        )
+        with pytest.warns(match=expected_msg):
+            blend_data(source1, source2, mask, blending_distance)
+
 
 class TestFunctionality:
     @pytest.fixture()
