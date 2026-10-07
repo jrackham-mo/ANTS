@@ -103,3 +103,21 @@ def test_forecast_reference_time():
         result = ants.io.load.load_cube(temp_file.name)
     result_coords = [c.name() for c in result.coords()]
     assert "forecast_reference_time" not in result_coords
+
+
+@ants.tests.skip_mule
+def test_metadata_loaded():
+    """Loads an ancil file, along with associated metadata from sidecar files."""
+    file_path = ants.tests.get_data_path("load_files/ancil_file_with_pseudo_levels")
+    loaded_cube = ants.io.load.load_cube(file_path)
+    expected_license = "An example license\n"
+    actual_license = loaded_cube.attributes["license"]
+    assert expected_license == actual_license
+
+
+@ants.tests.skip_mule
+def test_metadata_not_loaded():
+    """Loads an ancil file, ignoring associated metadata from sidecar files."""
+    file_path = ants.tests.get_data_path("load_files/ancil_file_with_pseudo_levels")
+    loaded_cube = ants.io.load.load_cube(file_path, ignore_metadata_files=True)
+    assert "license" not in loaded_cube.attributes
