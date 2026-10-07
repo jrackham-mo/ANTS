@@ -2,7 +2,9 @@
 #
 # This file is part of ANTS and is released under the BSD 3-Clause license.
 # See LICENSE.txt in the root of the repository for full licensing details.
-
+# Some of the content of this file has been produced with the assistance of
+# Met Office GitHub Copilot Enterprise.
+import os
 import tempfile
 
 import ants
@@ -108,8 +110,13 @@ def test_forecast_reference_time():
 @ants.tests.skip_mule
 def test_metadata_loaded():
     """Loads an ancil file, along with associated metadata from sidecar files."""
-    file_path = ants.tests.get_data_path("load_files/ancil_file_with_pseudo_levels")
-    loaded_cube = ants.io.load.load_cube(file_path)
+    files = [
+        "load_files/ancil_file_with_pseudo_levels",
+        "load_files/sidecars/ancil_file_with_pseudo_levels.license",
+    ]
+    with ants.tests.isolated_resources(*files) as tmp_dir:
+        file_path = os.path.join(tmp_dir, "ancil_file_with_pseudo_levels")
+        loaded_cube = ants.io.load.load_cube(file_path)
     expected_license = "An example license\n"
     actual_license = loaded_cube.attributes["license"]
     assert expected_license == actual_license
@@ -118,6 +125,11 @@ def test_metadata_loaded():
 @ants.tests.skip_mule
 def test_metadata_not_loaded():
     """Loads an ancil file, ignoring associated metadata from sidecar files."""
-    file_path = ants.tests.get_data_path("load_files/ancil_file_with_pseudo_levels")
-    loaded_cube = ants.io.load.load_cube(file_path, ignore_metadata_files=True)
+    files = [
+        "load_files/ancil_file_with_pseudo_levels",
+        "load_files/sidecars/ancil_file_with_pseudo_levels.license",
+    ]
+    with ants.tests.isolated_resources(*files) as tmp_dir:
+        file_path = os.path.join(tmp_dir, "ancil_file_with_pseudo_levels")
+        loaded_cube = ants.io.load.load_cube(file_path, ignore_metadata_files=True)
     assert "license" not in loaded_cube.attributes
