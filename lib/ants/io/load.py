@@ -2,6 +2,8 @@
 #
 # This file is part of ANTS and is released under the BSD 3-Clause license.
 # See LICENSE.txt in the root of the repository for full licensing details.
+# Some of the content of this file has been produced with the assistance of
+# Met Office GitHub Copilot Enterprise.
 """
 ####################
 Loading Target grids
@@ -327,7 +329,7 @@ def load_grid(filenames, *args, ignore_metadata_files=False, **kwargs):
     return grid
 
 
-def _customised_load(func):
+def _customised_load(func, ignore_metadata_files=False):
 
     def _pseudo_level_order_removal(cube):
         # Discard '_pseudo_level_order' coord on load (an implementation detail
@@ -371,37 +373,15 @@ def _customised_load(func):
                 "iris.FUTURE.datum_support flag.",
                 FutureWarning,
             )
-            # Check if metadata functionality has been turned off.
-            ignore_metadata_files = False
-            if "ignore_metadata_files" in kwargs:
-                ignore_metadata_files = kwargs.pop("ignore_metadata_files")
-            if not ignore_metadata_files:
-                # Get the inputs of the function.
-                sig = inspect.signature(func)
-                inputs = sig.bind(*args, **kwargs)
-                # Check if a constraint has been passed in so it can be preserved
-                if "constraints" in inputs.arguments.keys():
-                    constraints = inputs.arguments["constraints"]
-                elif "constraint" in inputs.arguments.keys():
-                    constraints = inputs.arguments["constraint"]
-                else:
-                    constraints = None
-                # Add a user callback to the metadata callback if supplied.
-                if "callback" in inputs.arguments.keys():
-                    callback = _CallbackMetadata(inputs.arguments["callback"])
-                else:
-                    callback = _CallbackMetadata(None)
-                # Always pass in as positional to avoid constrint naming mismatch
-                updated_binding = sig.bind(
-                    inputs.arguments["uris"], constraints, callback
-                )
-                # Use context manager to avoid permanently modifying iris behaviour.
-                with ants_format_agent():
-                    cubes = func(*updated_binding.args, **updated_binding.kwargs)
-            else:
-                # Use context manager to avoid permanently modifying iris behaviour.
-                with ants_format_agent():
-                    cubes = func(*args, **kwargs)
+            # Chain any user callback after the metadata callback.
+            bound = inspect.signature(func).bind(*args, **kwargs)
+            bound.apply_defaults()
+            bound.arguments["callback"] = _CallbackMetadata(
+                bound.arguments["callback"], ignore_metadata_files
+            )
+            # Use context manager to avoid permanently modifying iris behaviour.
+            with ants_format_agent():
+                cubes = func(*bound.args, **bound.kwargs)
         if cubes is not None:
             try:
                 ants.utils.cube.derive_circular_status(cubes)
@@ -422,18 +402,19 @@ class _CallbackMetadata:
     to the cube attributes.
     """
 
-    def __init__(self, user_callback):
+    def __init__(self, user_callback, ignore_metadata_files=False):
         self._user_callback = user_callback
+        self._ignore_metadata_files = ignore_metadata_files
 
     def __call__(self, cube, field, filename):
         """
         The method that runs when Iris runs the callback. Collects the filenames and
         will run the user callback
         """
-        metadata_filenames = f"{filename}.*"
-        metadata_files = glob.glob(metadata_filenames)
-        if metadata_files != []:
-            self._retrieve_metadata(metadata_files, cube)
+        if not self._ignore_metadata_files:
+            metadata_files = glob.glob(f"{filename}.*")
+            if metadata_files != []:
+                self._retrieve_metadata(metadata_files, cube)
         if self._user_callback is not None:
             self._user_callback(cube, field, filename)
 
@@ -507,10 +488,10 @@ def load_cube(*args, ignore_metadata_files=False, **kwargs):
     -------
         A :class:`~iris.cube.Cube`.
     """
-    loading_function = _customised_load(iris.load_cube)
-    return loading_function(
-        *args, ignore_metadata_files=ignore_metadata_files, **kwargs
+    loading_function = _customised_load(
+        iris.load_cube, ignore_metadata_files=ignore_metadata_files
     )
+    return loading_function(*args, **kwargs)
 
 
 def load(*args, ignore_metadata_files=False, **kwargs):
@@ -535,10 +516,10 @@ def load(*args, ignore_metadata_files=False, **kwargs):
     -------
         A :class:`~iris.cube.CubeList`.
     """
-    loading_function = _customised_load(iris.load)
-    return loading_function(
-        *args, ignore_metadata_files=ignore_metadata_files, **kwargs
+    loading_function = _customised_load(
+        iris.load, ignore_metadata_files=ignore_metadata_files
     )
+    return loading_function(*args, **kwargs)
 
 
 def load_cubes(*args, ignore_metadata_files=False, **kwargs):
@@ -564,10 +545,10 @@ def load_cubes(*args, ignore_metadata_files=False, **kwargs):
         A :class:`~iris.cube.CubeList`.
 
     """
-    loading_function = _customised_load(iris.load_cubes)
-    return loading_function(
-        *args, ignore_metadata_files=ignore_metadata_files, **kwargs
+    loading_function = _customised_load(
+        iris.load_cubes, ignore_metadata_files=ignore_metadata_files
     )
+    return loading_function(*args, **kwargs)
 
 
 def load_raw(*args, ignore_metadata_files=False, **kwargs):
@@ -592,7 +573,7 @@ def load_raw(*args, ignore_metadata_files=False, **kwargs):
     -------
         A :class:`~iris.cube.CubeList`.
     """
-    loading_function = _customised_load(iris.load_raw)
-    return loading_function(
-        *args, ignore_metadata_files=ignore_metadata_files, **kwargs
+    loading_function = _customised_load(
+        iris.load_raw, ignore_metadata_files=ignore_metadata_files
     )
+    return loading_function(*args, **kwargs)
