@@ -4,7 +4,6 @@
 # See LICENSE.txt in the root of the repository for full licensing details.
 # Some of the content of this file has been produced with the assistance of
 # Met Office GitHub Copilot Enterprise.
-import os
 import tempfile
 
 import ants
@@ -111,27 +110,35 @@ def test_forecast_reference_time():
 @ants.tests.skip_mule
 def test_metadata_loaded():
     """Loads an ancil file, along with associated metadata from sidecar files."""
-    files = [
-        "load_files/ancil_file_with_pseudo_levels",
-        "load_files/sidecars/ancil_file_with_pseudo_levels.license",
-    ]
-    with ants.tests.isolated_resources(*files) as tmp_dir:
-        file_path = os.path.join(tmp_dir, "ancil_file_with_pseudo_levels")
+    expected_attributes = {
+        "license": "An example license\n",
+        "attribution": "An example attribution\n",
+        "restrictions": "An example restrictions\n",
+        "institution": "An example institution\n",
+        "acknowledgement": "An example acknowledgement\n",
+        "references": "An example references\n",
+    }
+
+    with ants.tests.isolated_resource(
+        "load_files/ancil_file_with_pseudo_levels", sidecars=expected_attributes
+    ) as file_path:
         loaded_cube = ants.io.load.load_cube(file_path)
-    expected_license = "An example license\n"
-    actual_license = loaded_cube.attributes["license"]
-    assert expected_license == actual_license
+
+    assert loaded_cube.attributes["license"] == "An example license\n"
+    assert loaded_cube.attributes["attribution"] == "An example attribution\n"
+    assert loaded_cube.attributes["restrictions"] == "An example restrictions\n"
+    assert loaded_cube.attributes["institution"] == "An example institution\n"
+    assert loaded_cube.attributes["acknowledgement"] == "An example acknowledgement\n"
+    assert loaded_cube.attributes["references"] == "An example references\n"
 
 
 @ants.tests.skip_mule
 def test_metadata_not_loaded():
     """Loads an ancil file, ignoring associated metadata from sidecar files."""
-    files = [
+    with ants.tests.isolated_resource(
         "load_files/ancil_file_with_pseudo_levels",
-        "load_files/sidecars/ancil_file_with_pseudo_levels.license",
-    ]
-    with ants.tests.isolated_resources(*files) as tmp_dir:
-        file_path = os.path.join(tmp_dir, "ancil_file_with_pseudo_levels")
+        sidecars={"license": "An example license\n"},
+    ) as file_path:
         loaded_cube = ants.io.load.load_cube(file_path, ignore_metadata_files=True)
     assert "license" not in loaded_cube.attributes
 
@@ -151,21 +158,17 @@ def test_misnamed_licence_warning():
     If a sidecar file has the .licence extension, a warning will be raised, and
     the metadata should be added to the license attribute.
     """
-    files = [
-        "load_files/ancil_file_with_pseudo_levels",
-        "load_files/sidecars/ancil_file_with_pseudo_levels.licence",
-    ]
     expected_msg = (
         "The attribute name 'licence' has been changed to "
         "'license', in line with ANTS working practices."
     )
-    with ants.tests.isolated_resources(*files) as tmp_dir:
-        file_path = os.path.join(tmp_dir, "ancil_file_with_pseudo_levels")
+    with ants.tests.isolated_resource(
+        "load_files/ancil_file_with_pseudo_levels",
+        sidecars={"licence": "An example licence\n"},
+    ) as file_path:
         with pytest.warns(ants.exceptions.MetadataWarning, match=expected_msg):
             loaded_cube = ants.io.load.load_cube(file_path)
-    expected_license = "An example licence\n"
-    actual_license = loaded_cube.attributes["license"]
-    assert expected_license == actual_license
+    assert loaded_cube.attributes["license"] == "An example licence\n"
 
 
 @ants.tests.skip_mule
@@ -186,14 +189,10 @@ def test_invalid_metadata_warning():
         r"'restrictions', 'institution', 'acknowledgement', 'references'\]"
     )
 
-    with ants.tests.isolated_resources(
-        "load_files/ancil_file_with_pseudo_levels"
-    ) as tmp_dir:
-        # Create an empty invalid sidecar file in the temporary directory
-        open(
-            os.path.join(tmp_dir, "ancil_file_with_pseudo_levels.invalid"), "x"
-        ).close()
-        file_path = os.path.join(tmp_dir, "ancil_file_with_pseudo_levels")
+    with ants.tests.isolated_resource(
+        "load_files/ancil_file_with_pseudo_levels",
+        sidecars={"invalid": "Invalid metadata file content"},
+    ) as file_path:
         with pytest.warns(ants.exceptions.MetadataWarning, match=expected_msg):
             loaded_cube = ants.io.load.load_cube(file_path)
 

@@ -152,29 +152,38 @@ def get_data_path(relative_path):
 
 
 @contextlib.contextmanager
-def isolated_resources(*relative_paths):
+def isolated_resource(relative_path, sidecars=None):
     """
-    Copy the given resource files into a standalone temporary directory.
+    Copy a resource file into a standalone temporary directory.
 
-    Paths are relative to the directory returned by `get_data_path`.  Files are
-    placed directly in the temporary directory (layout is not preserved), which
-    is yielded and removed on exit.  Useful for testing sidecar metadata file
-    loading, where neighbouring files matter.
+    The path is relative to the directory returned by `get_data_path`.  The
+    path of the copied file is yielded, and the temporary directory is removed
+    on exit.  Useful for testing sidecar metadata file loading, where
+    neighbouring files matter.
+
+    Parameters
+    ----------
+    relative_path : str
+        Resource file to copy.
+    sidecars : dict, optional
+        Maps sidecar extensions to text content, for files to create alongside
+        the copied file, named ``<file name>.<extension>``.
 
     Example usage:
         def test_sidecar(self):
-            with isolated_resources("global_geodetic.tif", "a/sidecar.json") as tmp:
-                cube = ants.load_cube(os.path.join(tmp, "global_geodetic.tif"))
+            with isolated_resource(
+                "global_geodetic.tif", sidecars={"license": "A license\\n"}
+            ) as path:
+                cube = ants.load_cube(path)
 
     """
     with tempfile.TemporaryDirectory(prefix="ants_test_resources_") as tmp:
-        for relative_path in relative_paths:
-            src = get_data_path(relative_path)
-            dst = os.path.join(tmp, os.path.basename(src))
-            if os.path.exists(dst):
-                raise ValueError(f"Duplicate resource file name: {relative_path}")
-            shutil.copy2(src, dst)
-        yield tmp
+        path = os.path.join(tmp, os.path.basename(relative_path))
+        shutil.copy2(get_data_path(relative_path), path)
+        for extension, content in (sidecars or {}).items():
+            with open(f"{path}.{extension}", "x") as sidecar:
+                sidecar.write(content)
+        yield path
 
 
 class TestCase(unittest.TestCase):
