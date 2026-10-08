@@ -458,15 +458,14 @@ class _CallbackMetadata:
             "acknowledgement",
             "references",
         ]
-        other_license = "licence"
         for metadata_file in metadata_files:
             file_name_splits = str(metadata_file).split(".")
             attribute_name = file_name_splits[-1]
-            if attribute_name == other_license:
+            if attribute_name == "licence":
                 warnings.warn(
-                    f"The attribute name {attribute_name} has been changed to "
+                    "The attribute name 'licence' has been changed to "
                     "'license', in line with ANTS working practices.",
-                    category=UserWarning,
+                    category=ants.exceptions.MetadataWarning,
                 )
                 attribute_name = "license"
             if attribute_name in cube.attributes:
@@ -477,10 +476,9 @@ class _CallbackMetadata:
                 )
             if attribute_name not in valid_metadata_names:
                 warnings.warn(
-                    f"Attribute {attribute_name} is not a valid metadata file "
-                    "name. Accepted metadata names are license, attribution "
-                    "and restrictions.",
-                    category=UserWarning,
+                    f"Attribute '{attribute_name}' is not a valid metadata file "
+                    f"name. Accepted metadata names are: {valid_metadata_names}",
+                    category=ants.exceptions.MetadataWarning,
                 )
             else:
                 with open(metadata_file, "r") as open_file:

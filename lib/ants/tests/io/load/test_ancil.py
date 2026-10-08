@@ -10,6 +10,7 @@ import tempfile
 import ants
 import ants.tests
 import iris.fileformats
+import pytest
 from ants.fileformats.ancil import mule
 from ants.io.load import ants_format_agent
 
@@ -133,3 +134,67 @@ def test_metadata_not_loaded():
         file_path = os.path.join(tmp_dir, "ancil_file_with_pseudo_levels")
         loaded_cube = ants.io.load.load_cube(file_path, ignore_metadata_files=True)
     assert "license" not in loaded_cube.attributes
+
+
+@ants.tests.skip_mule
+# pytest.warns re-emits unmatched warnings with module "warnings", so the
+# module-scoped "mule" filter in pyproject.toml no longer applies.
+@pytest.mark.filterwarnings(
+    "ignore:Ancillary files do not define the UM version number:UserWarning"
+)
+@pytest.mark.filterwarnings(
+    "ignore:`product` is deprecated as of NumPy 1.25.0, and will be removed in NumPy 2.0. Please use `prod` instead.:DeprecationWarning"  # noqa: E501
+)
+def test_misnamed_licence_warning():
+    """Loads an ancil file, along with associated metadata from licence sidecar file.
+
+    If a sidecar file has the .licence extension, a warning will be raised, and
+    the metadata should be added to the license attribute.
+    """
+    files = [
+        "load_files/ancil_file_with_pseudo_levels",
+        "load_files/sidecars/ancil_file_with_pseudo_levels.licence",
+    ]
+    expected_msg = (
+        "The attribute name 'licence' has been changed to "
+        "'license', in line with ANTS working practices."
+    )
+    with ants.tests.isolated_resources(*files) as tmp_dir:
+        file_path = os.path.join(tmp_dir, "ancil_file_with_pseudo_levels")
+        with pytest.warns(ants.exceptions.MetadataWarning, match=expected_msg):
+            loaded_cube = ants.io.load.load_cube(file_path)
+    expected_license = "An example licence\n"
+    actual_license = loaded_cube.attributes["license"]
+    assert expected_license == actual_license
+
+
+@ants.tests.skip_mule
+# pytest.warns re-emits unmatched warnings with module "warnings", so the
+# module-scoped "mule" filter in pyproject.toml no longer applies.
+@pytest.mark.filterwarnings(
+    "ignore:Ancillary files do not define the UM version number:UserWarning"
+)
+@pytest.mark.filterwarnings(
+    "ignore:`product` is deprecated as of NumPy 1.25.0, and will be removed in NumPy 2.0. Please use `prod` instead.:DeprecationWarning"  # noqa: E501
+)
+def test_invalid_metadata_warning():
+    """Loads an ancil file, and tests that a warning is raised for an unsupported
+    sidecar file: .invalid"""
+    expected_msg = (
+        r"Attribute 'invalid' is not a valid metadata file "
+        r"name. Accepted metadata names are: \['license', 'attribution', "
+        r"'restrictions', 'institution', 'acknowledgement', 'references'\]"
+    )
+
+    with ants.tests.isolated_resources(
+        "load_files/ancil_file_with_pseudo_levels"
+    ) as tmp_dir:
+        # Create an empty invalid sidecar file in the temporary directory
+        open(
+            os.path.join(tmp_dir, "ancil_file_with_pseudo_levels.invalid"), "x"
+        ).close()
+        file_path = os.path.join(tmp_dir, "ancil_file_with_pseudo_levels")
+        with pytest.warns(ants.exceptions.MetadataWarning, match=expected_msg):
+            loaded_cube = ants.io.load.load_cube(file_path)
+
+    assert "invalid" not in loaded_cube.attributes
