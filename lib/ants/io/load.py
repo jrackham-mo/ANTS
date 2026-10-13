@@ -226,7 +226,8 @@ def load_landsea_mask(filename, land_threshold=None, ignore_metadata_files=True)
         Threshold for converting the land fraction field into a landsea mask
         field.  0.5 would mean that any fraction greater than this will be
         masked.  This argument is used when loading a land fraction field.
-    ignore_metadata_files : The option to turn off the ability to load external metadata
+    ignore_metadata_files : bool
+        The option to turn off the ability to load external metadata
         files. Set to True (off) by default.
 
     Returns
@@ -285,7 +286,8 @@ def load_grid(filenames, *args, ignore_metadata_files=False, **kwargs):
         definition.
     *args :
         See :func:`iris.load`
-    ignore_metadata_files : The option to turn off the ability to load external metadata
+    ignore_metadata_files : bool
+        The option to turn off the ability to load external metadata
         files. Set to False (on) by default.
     **kwargs :
         See :func:`iris.load`
@@ -479,7 +481,8 @@ def load_cube(*args, ignore_metadata_files=False, **kwargs):
     ----------
     *args :
         See :func:`iris.load_cube`
-    ignore_metadata_files : The option to turn off the ability to load external metadata
+    ignore_metadata_files : bool
+        The option to turn off the ability to load external metadata
         files. Set to False (on) by default.
     **kwargs :
         See :func:`iris.load_cube`
@@ -507,7 +510,8 @@ def load(*args, ignore_metadata_files=False, **kwargs):
     ----------
     *args :
         See :func:`iris.load`
-    ignore_metadata_files : The option to turn off the ability to load external metadata
+    ignore_metadata_files : bool
+        The option to turn off the ability to load external metadata
         files. Set to False (on) by default.
     **kwargs :
         See :func:`iris.load`
@@ -535,7 +539,8 @@ def load_cubes(*args, ignore_metadata_files=False, **kwargs):
     ----------
     *args :
         See :func:`iris.load_cubes`
-    ignore_metadata_files : The option to turn off the ability to load external metadata
+    ignore_metadata_files : bool
+        The option to turn off the ability to load external metadata
         files. Set to False (on) by default.
     **kwargs :
         See :func:`iris.load_cubes`
@@ -564,7 +569,8 @@ def load_raw(*args, ignore_metadata_files=False, **kwargs):
     ----------
     *args :
         See :func:`iris.load_raw`
-    ignore_metadata_files : The option to turn off the ability to load external metadata
+    ignore_metadata_files : bool
+        The option to turn off the ability to load external metadata
         files. Set to False (on) by default.
     **kwargs :
         See :func:`iris.load_raw`
