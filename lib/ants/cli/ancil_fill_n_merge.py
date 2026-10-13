@@ -106,6 +106,7 @@ def main(
     search_method,
     blending_distance,
     ignore_metadata_files,
+    no_write_metadata,
 ):
     """
     Perform merge and fill operation on the provided sources.
@@ -164,6 +165,9 @@ def main(
     ignore_metadata_files : :obj:`bool`, optional
         When set to True, files containing metadata will not be loaded alongside data
         and added as attributes to the cube.
+    no_write_metadata : bool
+        If True, do not write metadata sidecar files alongside the ancillary.
+
 
     Returns
     -------
@@ -195,7 +199,7 @@ def main(
         ants.analysis.make_consistent_with_lsm(result, lbm, invert_mask, search_method)
 
     if not netcdf_only:
-        save.ancil(result, output, ignore_writing_metadata_files=ignore_metadata_files)
+        save.ancil(result, output, ignore_writing_metadata_files=no_write_metadata)
     save.netcdf(result, output)
 
     return result
@@ -285,6 +289,7 @@ def cli_interface():
         search_method=args.search_method,
         blending_distance=args.blending_distance,
         ignore_metadata_files=args.ignore_metadata_files,
+        no_write_metadata=args.no_write_metadata,
     )
 
 

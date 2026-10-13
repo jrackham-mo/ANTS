@@ -84,6 +84,7 @@ def main(
     netcdf_only,
     search_method,
     ignore_metadata_files,
+    no_write_metadata,
 ):
     """
     General regrid application top level call function.
@@ -129,6 +130,9 @@ def main(
     ignore_metadata_files : :obj:`bool`, optional
         When set to True, files containing metadata will not be loaded alongside data
         and added as attributes to the cube.
+    no_write_metadata : bool
+        If True, do not write metadata sidecar files alongside the ancillary.
+
 
     Returns
     -------
@@ -164,7 +168,7 @@ def main(
             save.ancil(
                 regridded_cubes,
                 output_path,
-                ignore_writing_metadata_files=ignore_metadata_files,
+                ignore_writing_metadata_files=no_write_metadata,
             )
         save.netcdf(regridded_cubes, output_path)
 
@@ -227,6 +231,7 @@ def cli_interface():
         args.netcdf_only,
         args.search_method,
         args.ignore_metadata_files,
+        args.no_write_metadata,
     )
 
 

@@ -25,12 +25,17 @@ def load_data(
     target_grid,
     begin=None,
     end=None,
+    ignore_metadata_files=False,
 ):
-    source_cubes = ants.io.load.load(source)
+    source_cubes = ants.io.load.load(
+        source, ignore_metadata_files=ignore_metadata_files
+    )
     if begin is not None:
         source_cubes = create_time_constrained_cubes(source_cubes, begin, end)
 
-    target_cube = ants.io.load.load_grid(target_grid)
+    target_cube = ants.io.load.load_grid(
+        target_grid, ignore_metadata_files=ignore_metadata_files
+    )
 
     check_target(target_cube, source_cubes)
 
@@ -87,6 +92,8 @@ def main(
     end,
     save_ukca,
     netcdf_only,
+    ignore_metadata_files,
+    no_write_metadata,
 ):
     """
     Vertical regrid application top level call function.
@@ -112,6 +119,12 @@ def main(
     end : :obj:`datetime`, optional
         If provided, all source data after this year is discarded.  Default is to
         include all source data.
+    netcdf_only : bool
+        If True, only write to netCDF. If False, write to both netCDF and ancillary.
+    ignore_metadata_files : bool
+        If True, do not read metadata sidecar files alongside the source.
+    no_write_metadata : bool
+        If True, do not write metadata sidecar files alongside the ancillary.
 
 
     Returns
@@ -125,6 +138,7 @@ def main(
         target_path,
         begin,
         end,
+        ignore_metadata_files,
     )
 
     regridded_cubes = regrid(source_cubes, target_cube)
@@ -133,7 +147,11 @@ def main(
         save.ukca_netcdf(regridded_cubes, output_path)
     else:
         if not netcdf_only:
-            save.ancil(regridded_cubes, output_path)
+            save.ancil(
+                regridded_cubes,
+                output_path,
+                ignore_writing_metadata_files=no_write_metadata,
+            )
         save.netcdf(regridded_cubes, output_path)
 
     return regridded_cubes
@@ -163,6 +181,8 @@ def cli_interface():
         args.end,
         args.save_ukca,
         args.netcdf_only,
+        args.ignore_metadata_files,
+        args.no_write_metadata,
     )
 
 
