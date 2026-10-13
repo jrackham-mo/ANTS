@@ -38,6 +38,9 @@ class AntsArgParser(argparse.ArgumentParser):
                                                           with the same name as the
                                                           source and loading them
                                                           alongside the source.
+            --no-write-metadata                           Stops the application from
+                                                          writing metadata files
+                                                          alongside the outputs.
 
         Additionally, there are standardised optional arguments and these are
         activated by passing the relevant keyword argument.  See 'Parameters'
@@ -181,6 +184,12 @@ class AntsArgParser(argparse.ArgumentParser):
             action="store_true",
             help="Stops the application from searching for metadata files with "
             "the same name as the source and loading them alongside the source.",
+            required=False,
+        )
+        self.add_argument(
+            "--no-write-metadata",
+            action="store_true",
+            help="Stops the application from writing metadata files alongside outputs.",
             required=False,
         )
         if time_constraints:

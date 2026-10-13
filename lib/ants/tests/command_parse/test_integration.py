@@ -40,9 +40,6 @@ class TestAntsArgParser(ants.tests.TestCase):
             "/path/to/output",
         ]
 
-        def path_check(filename, **kwargs):
-            return filename
-
         with mock.patch("sys.argv", new=new):
             parser = AntsArgParser(target_lsm=True)
             args = parser.parse_args()
@@ -55,6 +52,7 @@ class TestAntsArgParser(ants.tests.TestCase):
             sources=["/path/to/source"],
             netcdf_only=False,
             ignore_metadata_files=False,
+            no_write_metadata=False,
         )
         self.assertFalse(self.mock_config.called)
         self.assertEqual(args, target_args)
@@ -72,6 +70,7 @@ class TestAntsArgParser(ants.tests.TestCase):
             ants_config=None,
             netcdf_only=False,
             ignore_metadata_files=False,
+            no_write_metadata=False,
             new_arg="new_arg_value",
         )
         self.assertEqual(args, target_args)
@@ -181,6 +180,7 @@ class TestAntsArgParser(ants.tests.TestCase):
             end=2021,
             netcdf_only=False,
             ignore_metadata_files=False,
+            no_write_metadata=False,
         )
         self.assertFalse(self.mock_config.called)
         self.assertEqual(args, target_args)
@@ -214,6 +214,7 @@ class TestAntsArgParser(ants.tests.TestCase):
             end=1996,
             netcdf_only=False,
             ignore_metadata_files=False,
+            no_write_metadata=False,
         )
         self.assertFalse(self.mock_config.called)
         self.assertEqual(args, target_args)
@@ -296,6 +297,7 @@ class TestAntsArgParser(ants.tests.TestCase):
             sources=["/path/to/source"],
             netcdf_only=False,
             ignore_metadata_files=True,
+            no_write_metadata=False,
         )
         self.assertFalse(self.mock_config.called)
         self.assertEqual(args, target_args)

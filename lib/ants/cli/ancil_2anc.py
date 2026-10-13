@@ -46,7 +46,14 @@ def load_data(source, ignore_metadata_files):
     return cubes
 
 
-def main(source_path, output_path, grid_staggering, netcdf_only, ignore_metadata_files):
+def main(
+    source_path,
+    output_path,
+    grid_staggering,
+    netcdf_only,
+    ignore_metadata_files,
+    no_write_metadata,
+):
     """
     Convert specified source file to an ancillary.
 
@@ -58,6 +65,12 @@ def main(source_path, output_path, grid_staggering, netcdf_only, ignore_metadata
         Output ancillary file path.  A NetCDF will also be written.
     grid_staggering : :obj:`int`, optional
         Grid staggering lookup, see UM F03 - FLH(9).
+    netcdf_only : bool
+        If True, only write to netCDF. If False, write to both netCDF and ancillary.
+    ignore_metadata_files : bool
+        If True, do not read metadata sidecar files alongside the source.
+    no_write_metadata : bool
+        If True, do not write metadata sidecar files alongside the ancillary.
 
     Returns
     -------
@@ -75,7 +88,7 @@ def main(source_path, output_path, grid_staggering, netcdf_only, ignore_metadata
         save.ancil(
             source_cubes,
             output_path,
-            ignore_writing_metadata_files=ignore_metadata_files,
+            ignore_writing_metadata_files=no_write_metadata,
         )
     save.netcdf(source_cubes, output_path)
 
@@ -103,6 +116,7 @@ def cli_interface():
         args.grid_staggering,
         args.netcdf_only,
         args.ignore_metadata_files,
+        args.no_write_metadata,
     )
 
 
