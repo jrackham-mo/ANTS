@@ -177,18 +177,23 @@ class AntsArgParser(argparse.ArgumentParser):
             help="Only write out a netCDF file.",
             required=False,
         )
+
+        # Sets the "read_metadata" attribute to False if provided,
+        # otherwise it will be set to True
         self.add_argument(
-            "--ignore-metadata-files",
-            action="store_true",
+            "--no-read-metadata",
+            action="store_false",
             help="Stops the application from searching for metadata files with "
             "the same name as the source and loading them alongside the source.",
             required=False,
+            dest="read_metadata",
         )
         self.add_argument(
             "--no-write-metadata",
-            action="store_true",
+            action="store_false",
             help="Stops the application from writing metadata files alongside outputs.",
             required=False,
+            dest="write_metadata",
         )
         if time_constraints:
             self.add_argument(

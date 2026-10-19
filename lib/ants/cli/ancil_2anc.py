@@ -37,12 +37,12 @@ import ants.io.save as save
 import iris
 
 
-def load_data(source, ignore_metadata_files):
+def load_data(source, read_metadata):
     with warnings.catch_warnings():
         warnings.filterwarnings(
             "ignore", "NetCDF default loading", iris._deprecation.IrisDeprecation
         )
-        cubes = ants.io.load.load(source, ignore_metadata_files=ignore_metadata_files)
+        cubes = ants.io.load.load(source, read_metadata=read_metadata)
     return cubes
 
 
@@ -51,8 +51,8 @@ def main(
     output_path,
     grid_staggering,
     netcdf_only,
-    ignore_metadata_files,
-    no_write_metadata,
+    read_metadata,
+    write_metadata,
 ):
     """
     Convert specified source file to an ancillary.
@@ -79,7 +79,7 @@ def main(
         written to an ancillary.
 
     """
-    source_cubes = load_data(source_path, ignore_metadata_files)
+    source_cubes = load_data(source_path, read_metadata)
     if grid_staggering is not None:
         for source_cube in source_cubes:
             source_cube.attributes["grid_staggering"] = grid_staggering
@@ -88,7 +88,7 @@ def main(
         save.ancil(
             source_cubes,
             output_path,
-            ignore_writing_metadata_files=no_write_metadata,
+            write_metadata=write_metadata,
         )
     save.netcdf(source_cubes, output_path)
 
@@ -115,8 +115,8 @@ def cli_interface():
         args.output,
         args.grid_staggering,
         args.netcdf_only,
-        args.ignore_metadata_files,
-        args.no_write_metadata,
+        args.read_metadata,
+        args.write_metadata,
     )
 
 

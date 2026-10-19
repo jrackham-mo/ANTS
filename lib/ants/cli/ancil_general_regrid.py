@@ -168,7 +168,7 @@ def main(
             save.ancil(
                 regridded_cubes,
                 output_path,
-                ignore_writing_metadata_files=no_write_metadata,
+                write_metadata=no_write_metadata,
             )
         save.netcdf(regridded_cubes, output_path)
 

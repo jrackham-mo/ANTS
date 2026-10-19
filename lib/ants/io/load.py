@@ -331,7 +331,7 @@ def load_grid(filenames, *args, ignore_metadata_files=False, **kwargs):
     return grid
 
 
-def _customised_load(func, ignore_metadata_files=False):
+def _customised_load(func, read_metadata=True):
 
     def _pseudo_level_order_removal(cube):
         # Discard '_pseudo_level_order' coord on load (an implementation detail
@@ -379,7 +379,7 @@ def _customised_load(func, ignore_metadata_files=False):
             bound = inspect.signature(func).bind(*args, **kwargs)
             bound.apply_defaults()
             bound.arguments["callback"] = _CallbackMetadata(
-                bound.arguments["callback"], ignore_metadata_files
+                bound.arguments["callback"], read_metadata
             )
             # Use context manager to avoid permanently modifying iris behaviour.
             with ants_format_agent():
@@ -404,16 +404,16 @@ class _CallbackMetadata:
     to the cube attributes.
     """
 
-    def __init__(self, user_callback, ignore_metadata_files=False):
+    def __init__(self, user_callback, read_metadata):
         self._user_callback = user_callback
-        self._ignore_metadata_files = ignore_metadata_files
+        self._read_metadata = read_metadata
 
     def __call__(self, cube, field, filename):
         """
         The method that runs when Iris runs the callback. Collects the filenames and
         will run the user callback
         """
-        if not self._ignore_metadata_files:
+        if self._read_metadata:
             metadata_files = glob.glob(f"{filename}.*")
             if metadata_files != []:
                 self._retrieve_metadata(metadata_files, cube)
@@ -497,7 +497,7 @@ def load_cube(*args, ignore_metadata_files=False, **kwargs):
     return loading_function(*args, **kwargs)
 
 
-def load(*args, ignore_metadata_files=False, **kwargs):
+def load(*args, read_metadata=True, **kwargs):
     """
     Loads any number of Cubes for each constraint.
 
@@ -520,9 +520,7 @@ def load(*args, ignore_metadata_files=False, **kwargs):
     -------
         A :class:`~iris.cube.CubeList`.
     """
-    loading_function = _customised_load(
-        iris.load, ignore_metadata_files=ignore_metadata_files
-    )
+    loading_function = _customised_load(iris.load, read_metadata)
     return loading_function(*args, **kwargs)
 
 
